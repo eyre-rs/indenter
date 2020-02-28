@@ -18,6 +18,14 @@ impl<'a, D> Indented<'a, D> {
             started: false,
         }
     }
+
+    pub fn new(inner: &'a mut D) -> Self {
+        Self {
+            inner,
+            ind: None,
+            started: false,
+        }
+    }
 }
 
 impl<T> fmt::Write for Indented<'_, T>
