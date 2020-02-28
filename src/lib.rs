@@ -44,7 +44,7 @@ where
 
                 self.started = true;
                 match self.ind {
-                    Some(ind) => self.inner.write_fmt(format_args!("{: >5}: ", ind))?,
+                    Some(ind) => self.inner.write_fmt(format_args!("{: >4}: ", ind))?,
                     None => self.inner.write_fmt(format_args!("    "))?,
                 }
             } else if ind > 0 {
