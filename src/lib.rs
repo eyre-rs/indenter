@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn one_digit() {
         let input = "verify\nthis";
-        let expected = "    2: verify\n       this";
+        let expected = "   2: verify\n       this";
         let mut output = String::new();
 
         Indented {
@@ -88,7 +88,7 @@ mod tests {
     #[test]
     fn two_digits() {
         let input = "verify\nthis";
-        let expected = "   12: verify\n       this";
+        let expected = "  12: verify\n       this";
         let mut output = String::new();
 
         Indented {
