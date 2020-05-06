@@ -90,7 +90,7 @@ where
     }
 }
 
-pub fn indented<'a, D>(f: &'a mut D) -> Indented<'a, D> {
+pub fn indented<D>(f: &mut D) -> Indented<'_, D> {
     Indented::new(f)
 }
 
