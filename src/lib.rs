@@ -1,15 +1,61 @@
+//! A wrapper for the `fmt::Write` objects that efficiently appends indentation after every newline
+#![doc(html_root_url = "https://docs.rs/indenter/0.1.4")]
+#![warn(
+    missing_debug_implementations,
+    missing_docs,
+    missing_doc_code_examples,
+    rust_2018_idioms,
+    unreachable_pub,
+    bad_style,
+    const_err,
+    dead_code,
+    improper_ctypes,
+    non_shorthand_field_patterns,
+    no_mangle_generic_items,
+    overflowing_literals,
+    path_statements,
+    patterns_in_fns_without_body,
+    private_in_public,
+    unconditional_recursion,
+    unused,
+    unused_allocation,
+    unused_comparisons,
+    unused_parens,
+    while_true
+)]
 use std::fmt;
 
 /// The set of supported formats for indentation
 #[non_exhaustive]
+#[allow(missing_debug_implementations)]
 pub enum Format {
-    Uniform { indentation: &'static str },
-    Numbered { ind: usize },
-    Custom { inserter: Box<Inserter> },
+    /// Insert uniform indentation before every line
+    ///
+    /// This format takes a static string as input and inserts that after every newline
+    Uniform {
+        /// The string to insert as indentation
+        indentation: &'static str,
+    },
+    /// Inserts a number before the first line
+    ///
+    /// This format hard codes the indentation level to match the indentation from
+    /// `std::backtrace::Backtrace`
+    Numbered {
+        /// The index to insert before the first line of output
+        ind: usize,
+    },
+    /// A custom indenter which is executed after every newline
+    ///
+    /// Custom indenters are given as input the buffer to be written to and the current line number
+    Custom {
+        /// The custom indenter
+        inserter: Box<Inserter>,
+    },
 }
 
 /// Helper struct for efficiently numbering and correctly indenting multi line display
 /// implementations
+#[allow(missing_debug_implementations)]
 pub struct Indented<'a, D> {
     inner: &'a mut D,
     started: bool,
@@ -46,6 +92,8 @@ impl<'a, D> Indented<'a, D> {
         }
     }
 
+    /// Construct an indenter which defaults to `Format::Uniform` with 4 spaces as the indenation
+    /// string
     pub fn new(inner: &'a mut D) -> Self {
         Self {
             inner,
@@ -56,6 +104,7 @@ impl<'a, D> Indented<'a, D> {
         }
     }
 
+    /// Construct an indenter with a user defined format
     pub fn with_format(mut self, format: Format) -> Self {
         self.format = format;
         self
@@ -90,6 +139,7 @@ where
     }
 }
 
+/// Helper function for creating a default indenter
 pub fn indented<D>(f: &mut D) -> Indented<'_, D> {
     Indented::new(f)
 }
