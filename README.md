@@ -2,7 +2,7 @@
 
 [![Build Status][actions-badge]][actions-url]
 [![Latest Version][version-badge]][version-url]
-[![Rust Documentation]()]()
+[![Rust Documentation][docs-badge]][docs-url]
 
 [actions-badge]: https://github.com/yaahc/indenter/workflows/Continuous%20integration/badge.svg
 [actions-url]: https://github.com/yaahc/indenter/actions?query=workflow%3A%22Continuous+integration%22

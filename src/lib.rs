@@ -67,7 +67,7 @@ use std::fmt;
 pub enum Format {
     /// Insert uniform indentation before every line
     ///
-    /// This format takes a static string as input and inserts that after every newline
+    /// This format takes a static string as input and inserts it after every newline
     Uniform {
         /// The string to insert as indentation
         indentation: &'static str,
@@ -82,7 +82,7 @@ pub enum Format {
     },
     /// A custom indenter which is executed after every newline
     ///
-    /// Custom indenters are given as input the buffer to be written to and the current line number
+    /// Custom indenters are passed the current line number and the buffer to be written to as args
     Custom {
         /// The custom indenter
         inserter: Box<Inserter>,
@@ -94,11 +94,10 @@ pub enum Format {
 /// # Explanation
 ///
 /// This type will never allocate a string to handle inserting indentation. It instead leverages
-/// the `write_fmt` function that serves as the foundation of the `std::fmt::Write` trait. This
+/// the `write_str` function that serves as the foundation of the `std::fmt::Write` trait. This
 /// lets it intercept each piece of output as its being written to the output buffer. It then
-/// splits on newlines giving slices into the original string. We then selectively insert
-/// indentation into the output buffer when appropriate between writing these split parts of the
-/// input string.
+/// splits on newlines giving slices into the original string. Finally we alternate writing these
+/// lines and the specified indentation to the output buffer.
 #[allow(missing_debug_implementations)]
 pub struct Indented<'a, D> {
     inner: &'a mut D,
