@@ -89,8 +89,16 @@ pub enum Format {
     },
 }
 
-/// Helper struct for efficiently numbering and correctly indenting multi line display
-/// implementations
+/// Helper struct for efficiently indenting multi line display implementations
+///
+/// # Explanation
+///
+/// This type will never allocate a string to handle inserting indentation. It instead leverages
+/// the `write_fmt` function that serves as the foundation of the `std::fmt::Write` trait. This
+/// lets it intercept each piece of output as its being written to the output buffer. It then
+/// splits on newlines giving slices into the original string. We then selectively insert
+/// indentation into the output buffer when appropriate between writing these split parts of the
+/// input string.
 #[allow(missing_debug_implementations)]
 pub struct Indented<'a, D> {
     inner: &'a mut D,
@@ -98,7 +106,9 @@ pub struct Indented<'a, D> {
     format: Format,
 }
 
-/// A callback used to insert indenation after a new line
+/// A callback for `Format::Custom` used to insert indenation after a new line
+///
+/// The first argument is the line number within the output, starting from 0
 pub type Inserter = dyn FnMut(usize, &mut dyn fmt::Write) -> fmt::Result;
 
 impl Format {

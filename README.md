@@ -11,7 +11,11 @@
 [docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg
 [docs-url]: https://docs.rs/indenter
 
-A wrapper for the `fmt::Write` objects that efficiently appends indentation after every newline
+A wrapper for the `fmt::Write` objects that efficiently appends indentation
+after every newline.
+
+This type is intended primarily for writing error reporters that gracefully
+format error messages that span multiple lines.
 
 ## Setup
 
