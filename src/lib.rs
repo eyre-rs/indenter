@@ -1,22 +1,113 @@
+//! A wrapper for the `fmt::Write` objects that efficiently appends indentation after every newline
+//!
+//! # Setup
+//!
+//! Add this to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! indenter = "0.2"
+//! ```
+//!
+//! # Example
+//!
+//! ```rust
+//! use std::error::Error;
+//! use std::fmt::{self, Write};
+//! use indenter::indented;
+//!
+//! struct ErrorReporter<'a>(&'a dyn Error);
+//!
+//! impl fmt::Debug for ErrorReporter<'_> {
+//!     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//!         let mut source = Some(self.0);
+//!         let mut i = 0;
+//!
+//!         while let Some(error) = source {
+//!             writeln!(f)?;
+//!             write!(indented(f).ind(i), "{}", error)?;
+//!
+//!             source = error.source();
+//!             i += 1;
+//!         }
+//!
+//!         Ok(())
+//!     }
+//! }
+//! ```
+#![doc(html_root_url = "https://docs.rs/indenter/0.2.0")]
+#![warn(
+    missing_debug_implementations,
+    missing_docs,
+    missing_doc_code_examples,
+    rust_2018_idioms,
+    unreachable_pub,
+    bad_style,
+    const_err,
+    dead_code,
+    improper_ctypes,
+    non_shorthand_field_patterns,
+    no_mangle_generic_items,
+    overflowing_literals,
+    path_statements,
+    patterns_in_fns_without_body,
+    private_in_public,
+    unconditional_recursion,
+    unused,
+    unused_allocation,
+    unused_comparisons,
+    unused_parens,
+    while_true
+)]
 use std::fmt;
 
 /// The set of supported formats for indentation
 #[non_exhaustive]
+#[allow(missing_debug_implementations)]
 pub enum Format {
-    Uniform { indentation: &'static str },
-    Numbered { ind: usize },
-    Custom { inserter: Box<Inserter> },
+    /// Insert uniform indentation before every line
+    ///
+    /// This format takes a static string as input and inserts it after every newline
+    Uniform {
+        /// The string to insert as indentation
+        indentation: &'static str,
+    },
+    /// Inserts a number before the first line
+    ///
+    /// This format hard codes the indentation level to match the indentation from
+    /// `std::backtrace::Backtrace`
+    Numbered {
+        /// The index to insert before the first line of output
+        ind: usize,
+    },
+    /// A custom indenter which is executed after every newline
+    ///
+    /// Custom indenters are passed the current line number and the buffer to be written to as args
+    Custom {
+        /// The custom indenter
+        inserter: Box<Inserter>,
+    },
 }
 
-/// Helper struct for efficiently numbering and correctly indenting multi line display
-/// implementations
+/// Helper struct for efficiently indenting multi line display implementations
+///
+/// # Explanation
+///
+/// This type will never allocate a string to handle inserting indentation. It instead leverages
+/// the `write_str` function that serves as the foundation of the `std::fmt::Write` trait. This
+/// lets it intercept each piece of output as its being written to the output buffer. It then
+/// splits on newlines giving slices into the original string. Finally we alternate writing these
+/// lines and the specified indentation to the output buffer.
+#[allow(missing_debug_implementations)]
 pub struct Indented<'a, D> {
     inner: &'a mut D,
     started: bool,
     format: Format,
 }
 
-/// A callback used to insert indenation after a new line
+/// A callback for `Format::Custom` used to insert indenation after a new line
+///
+/// The first argument is the line number within the output, starting from 0
 pub type Inserter = dyn FnMut(usize, &mut dyn fmt::Write) -> fmt::Result;
 
 impl Format {
@@ -36,26 +127,12 @@ impl Format {
 }
 
 impl<'a, D> Indented<'a, D> {
-    /// Wrap a formatter number the first line and indent all lines of input before forwarding the
-    /// output to the inner formatter
-    pub fn numbered(inner: &'a mut D, ind: usize) -> Self {
-        Self {
-            inner,
-            started: false,
-            format: Format::Numbered { ind },
-        }
+    /// Sets the format to `Format::Numbered` with the provided index
+    pub fn ind(self, ind: usize) -> Self {
+        self.with_format(Format::Numbered { ind })
     }
 
-    pub fn new(inner: &'a mut D) -> Self {
-        Self {
-            inner,
-            started: false,
-            format: Format::Uniform {
-                indentation: "    ",
-            },
-        }
-    }
-
+    /// Construct an indenter with a user defined format
     pub fn with_format(mut self, format: Format) -> Self {
         self.format = format;
         self
@@ -90,8 +167,15 @@ where
     }
 }
 
-pub fn indented<'a, D>(f: &'a mut D) -> Indented<'a, D> {
-    Indented::new(f)
+/// Helper function for creating a default indenter
+pub fn indented<D>(f: &mut D) -> Indented<'_, D> {
+    Indented {
+        inner: f,
+        started: false,
+        format: Format::Uniform {
+            indentation: "    ",
+        },
+    }
 }
 
 #[cfg(test)]
@@ -105,7 +189,7 @@ mod tests {
         let expected = "   2: verify\n       this";
         let mut output = String::new();
 
-        Indented::numbered(&mut output, 2).write_str(input).unwrap();
+        indented(&mut output).ind(2).write_str(input).unwrap();
 
         assert_eq!(expected, output);
     }
@@ -116,9 +200,7 @@ mod tests {
         let expected = "  12: verify\n       this";
         let mut output = String::new();
 
-        Indented::numbered(&mut output, 12)
-            .write_str(input)
-            .unwrap();
+        indented(&mut output).ind(12).write_str(input).unwrap();
 
         assert_eq!(expected, output);
     }
