@@ -1,5 +1,41 @@
 //! A wrapper for the `fmt::Write` objects that efficiently appends indentation after every newline
-#![doc(html_root_url = "https://docs.rs/indenter/0.1.4")]
+//!
+//! # Setup
+//!
+//! Add this to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! indenter = "0.2"
+//! ```
+//!
+//! # Example
+//!
+//! ```rust
+//! use std::error::Error;
+//! use std::fmt::{self, Write};
+//! use indenter::indented;
+//!
+//! struct ErrorReporter<'a>(&'a dyn Error);
+//!
+//! impl fmt::Debug for ErrorReporter<'_> {
+//!     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//!         let mut source = Some(self.0);
+//!         let mut i = 0;
+//!
+//!         while let Some(error) = source {
+//!             writeln!(f)?;
+//!             write!(indented(f).ind(i), "{}", error)?;
+//!
+//!             source = error.source();
+//!             i += 1;
+//!         }
+//!
+//!         Ok(())
+//!     }
+//! }
+//! ```
+#![doc(html_root_url = "https://docs.rs/indenter/0.2.0")]
 #![warn(
     missing_debug_implementations,
     missing_docs,
@@ -82,26 +118,9 @@ impl Format {
 }
 
 impl<'a, D> Indented<'a, D> {
-    /// Wrap a formatter number the first line and indent all lines of input before forwarding the
-    /// output to the inner formatter
-    pub fn numbered(inner: &'a mut D, ind: usize) -> Self {
-        Self {
-            inner,
-            started: false,
-            format: Format::Numbered { ind },
-        }
-    }
-
-    /// Construct an indenter which defaults to `Format::Uniform` with 4 spaces as the indenation
-    /// string
-    pub fn new(inner: &'a mut D) -> Self {
-        Self {
-            inner,
-            started: false,
-            format: Format::Uniform {
-                indentation: "    ",
-            },
-        }
+    /// Sets the format to `Format::Numbered` with the provided index
+    pub fn ind(self, ind: usize) -> Self {
+        self.with_format(Format::Numbered { ind })
     }
 
     /// Construct an indenter with a user defined format
@@ -141,7 +160,13 @@ where
 
 /// Helper function for creating a default indenter
 pub fn indented<D>(f: &mut D) -> Indented<'_, D> {
-    Indented::new(f)
+    Indented {
+        inner: f,
+        started: false,
+        format: Format::Uniform {
+            indentation: "    ",
+        },
+    }
 }
 
 #[cfg(test)]
@@ -155,7 +180,7 @@ mod tests {
         let expected = "   2: verify\n       this";
         let mut output = String::new();
 
-        Indented::numbered(&mut output, 2).write_str(input).unwrap();
+        indented(&mut output).ind(2).write_str(input).unwrap();
 
         assert_eq!(expected, output);
     }
@@ -166,9 +191,7 @@ mod tests {
         let expected = "  12: verify\n       this";
         let mut output = String::new();
 
-        Indented::numbered(&mut output, 12)
-            .write_str(input)
-            .unwrap();
+        indented(&mut output).ind(12).write_str(input).unwrap();
 
         assert_eq!(expected, output);
     }
