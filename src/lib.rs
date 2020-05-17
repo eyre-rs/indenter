@@ -183,8 +183,8 @@ mod tests {
     extern crate alloc;
 
     use super::*;
-    use core::fmt::Write as _;
     use alloc::string::String;
+    use core::fmt::Write as _;
 
     #[test]
     fn one_digit() {
