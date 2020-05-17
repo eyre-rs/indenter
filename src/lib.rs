@@ -35,7 +35,7 @@
 //!     }
 //! }
 //! ```
-#![doc(html_root_url = "https://docs.rs/indenter/0.2.0")]
+#![doc(html_root_url = "https://docs.rs/indenter/0.2.1")]
 #![warn(
     missing_debug_implementations,
     missing_docs,
