@@ -35,7 +35,8 @@
 //!     }
 //! }
 //! ```
-#![doc(html_root_url = "https://docs.rs/indenter/0.2.1")]
+#![no_std]
+#![doc(html_root_url = "https://docs.rs/indenter/0.3.0")]
 #![warn(
     missing_debug_implementations,
     missing_docs,
@@ -63,7 +64,7 @@ use core::fmt;
 
 /// The set of supported formats for indentation
 #[allow(missing_debug_implementations)]
-pub enum Format {
+pub enum Format<'a> {
     /// Insert uniform indentation before every line
     ///
     /// This format takes a static string as input and inserts it after every newline
@@ -84,7 +85,7 @@ pub enum Format {
     /// Custom indenters are passed the current line number and the buffer to be written to as args
     Custom {
         /// The custom indenter
-        inserter: Box<Inserter>,
+        inserter: &'a mut Inserter,
     },
 }
 
@@ -101,7 +102,7 @@ pub enum Format {
 pub struct Indented<'a, D> {
     inner: &'a mut D,
     started: bool,
-    format: Format,
+    format: Format<'a>,
 }
 
 /// A callback for `Format::Custom` used to insert indenation after a new line
@@ -109,7 +110,7 @@ pub struct Indented<'a, D> {
 /// The first argument is the line number within the output, starting from 0
 pub type Inserter = dyn FnMut(usize, &mut dyn fmt::Write) -> fmt::Result;
 
-impl Format {
+impl Format<'_> {
     fn insert_indentation(&mut self, line: usize, f: &mut dyn fmt::Write) -> fmt::Result {
         match self {
             Format::Uniform { indentation } => write!(f, "{}", indentation),
@@ -132,7 +133,7 @@ impl<'a, D> Indented<'a, D> {
     }
 
     /// Construct an indenter with a user defined format
-    pub fn with_format(mut self, format: Format) -> Self {
+    pub fn with_format(mut self, format: Format<'a>) -> Self {
         self.format = format;
         self
     }
@@ -179,8 +180,11 @@ pub fn indented<D>(f: &mut D) -> Indented<'_, D> {
 
 #[cfg(test)]
 mod tests {
+    extern crate alloc;
+
     use super::*;
     use core::fmt::Write as _;
+    use alloc::string::String;
 
     #[test]
     fn one_digit() {
@@ -224,13 +228,13 @@ mod tests {
 
         write!(
             indented(output).with_format(Format::Custom {
-                inserter: Box::new(move |line_no, f| {
+                inserter: &mut move |line_no, f| {
                     if line_no == 0 {
                         write!(f, "{: >4}: ", n)
                     } else {
                         write!(f, "       ")
                     }
-                })
+                }
             }),
             "{}",
             input
