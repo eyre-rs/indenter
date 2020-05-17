@@ -13,7 +13,7 @@
 //!
 //! ```rust
 //! use std::error::Error;
-//! use std::fmt::{self, Write};
+//! use core::fmt::{self, Write};
 //! use indenter::indented;
 //!
 //! struct ErrorReporter<'a>(&'a dyn Error);
@@ -35,7 +35,8 @@
 //!     }
 //! }
 //! ```
-#![doc(html_root_url = "https://docs.rs/indenter/0.2.0")]
+#![no_std]
+#![doc(html_root_url = "https://docs.rs/indenter/0.3.0")]
 #![warn(
     missing_debug_implementations,
     missing_docs,
@@ -59,12 +60,11 @@
     unused_parens,
     while_true
 )]
-use std::fmt;
+use core::fmt;
 
 /// The set of supported formats for indentation
-#[non_exhaustive]
 #[allow(missing_debug_implementations)]
-pub enum Format {
+pub enum Format<'a> {
     /// Insert uniform indentation before every line
     ///
     /// This format takes a static string as input and inserts it after every newline
@@ -75,7 +75,7 @@ pub enum Format {
     /// Inserts a number before the first line
     ///
     /// This format hard codes the indentation level to match the indentation from
-    /// `std::backtrace::Backtrace`
+    /// `core::backtrace::Backtrace`
     Numbered {
         /// The index to insert before the first line of output
         ind: usize,
@@ -85,7 +85,7 @@ pub enum Format {
     /// Custom indenters are passed the current line number and the buffer to be written to as args
     Custom {
         /// The custom indenter
-        inserter: Box<Inserter>,
+        inserter: &'a mut Inserter,
     },
 }
 
@@ -94,7 +94,7 @@ pub enum Format {
 /// # Explanation
 ///
 /// This type will never allocate a string to handle inserting indentation. It instead leverages
-/// the `write_str` function that serves as the foundation of the `std::fmt::Write` trait. This
+/// the `write_str` function that serves as the foundation of the `core::fmt::Write` trait. This
 /// lets it intercept each piece of output as its being written to the output buffer. It then
 /// splits on newlines giving slices into the original string. Finally we alternate writing these
 /// lines and the specified indentation to the output buffer.
@@ -102,7 +102,7 @@ pub enum Format {
 pub struct Indented<'a, D> {
     inner: &'a mut D,
     started: bool,
-    format: Format,
+    format: Format<'a>,
 }
 
 /// A callback for `Format::Custom` used to insert indenation after a new line
@@ -110,18 +110,18 @@ pub struct Indented<'a, D> {
 /// The first argument is the line number within the output, starting from 0
 pub type Inserter = dyn FnMut(usize, &mut dyn fmt::Write) -> fmt::Result;
 
-impl Format {
+impl Format<'_> {
     fn insert_indentation(&mut self, line: usize, f: &mut dyn fmt::Write) -> fmt::Result {
         match self {
-            Self::Uniform { indentation } => write!(f, "{}", indentation),
-            Self::Numbered { ind } => {
+            Format::Uniform { indentation } => write!(f, "{}", indentation),
+            Format::Numbered { ind } => {
                 if line == 0 {
                     write!(f, "{: >4}: ", ind)
                 } else {
-                    write!(f, "       ")
+                    write!(f, "      ")
                 }
             }
-            Self::Custom { inserter } => inserter(line, f),
+            Format::Custom { inserter } => inserter(line, f),
         }
     }
 }
@@ -133,7 +133,7 @@ impl<'a, D> Indented<'a, D> {
     }
 
     /// Construct an indenter with a user defined format
-    pub fn with_format(mut self, format: Format) -> Self {
+    pub fn with_format(mut self, format: Format<'a>) -> Self {
         self.format = format;
         self
     }
@@ -180,13 +180,16 @@ pub fn indented<D>(f: &mut D) -> Indented<'_, D> {
 
 #[cfg(test)]
 mod tests {
+    extern crate alloc;
+
     use super::*;
-    use std::fmt::Write as _;
+    use alloc::string::String;
+    use core::fmt::Write as _;
 
     #[test]
     fn one_digit() {
         let input = "verify\nthis";
-        let expected = "   2: verify\n       this";
+        let expected = "   2: verify\n      this";
         let mut output = String::new();
 
         indented(&mut output).ind(2).write_str(input).unwrap();
@@ -197,7 +200,7 @@ mod tests {
     #[test]
     fn two_digits() {
         let input = "verify\nthis";
-        let expected = "  12: verify\n       this";
+        let expected = "  12: verify\n      this";
         let mut output = String::new();
 
         indented(&mut output).ind(12).write_str(input).unwrap();
@@ -225,13 +228,13 @@ mod tests {
 
         write!(
             indented(output).with_format(Format::Custom {
-                inserter: Box::new(move |line_no, f| {
+                inserter: &mut move |line_no, f| {
                     if line_no == 0 {
                         write!(f, "{: >4}: ", n)
                     } else {
                         write!(f, "       ")
                     }
-                })
+                }
             }),
             "{}",
             input
