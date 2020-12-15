@@ -99,7 +99,7 @@ pub enum Format<'a> {
 /// splits on newlines giving slices into the original string. Finally we alternate writing these
 /// lines and the specified indentation to the output buffer.
 #[allow(missing_debug_implementations)]
-pub struct Indented<'a, D> {
+pub struct Indented<'a, D: ?Sized> {
     inner: &'a mut D,
     started: bool,
     format: Format<'a>,
@@ -141,7 +141,7 @@ impl<'a, D> Indented<'a, D> {
 
 impl<T> fmt::Write for Indented<'_, T>
 where
-    T: fmt::Write,
+    T: fmt::Write + ?Sized,
 {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for (ind, mut line) in s.split('\n').enumerate() {
@@ -154,10 +154,10 @@ where
                 }
 
                 self.started = true;
-                self.format.insert_indentation(ind, self.inner)?;
+                self.format.insert_indentation(ind, &mut self.inner)?;
             } else if ind > 0 {
                 self.inner.write_char('\n')?;
-                self.format.insert_indentation(ind, self.inner)?;
+                self.format.insert_indentation(ind, &mut self.inner)?;
             }
 
             self.inner.write_fmt(format_args!("{}", line))?;
@@ -168,7 +168,7 @@ where
 }
 
 /// Helper function for creating a default indenter
-pub fn indented<D>(f: &mut D) -> Indented<'_, D> {
+pub fn indented<D: ?Sized>(f: &mut D) -> Indented<'_, D> {
     Indented {
         inner: f,
         started: false,
@@ -215,6 +215,18 @@ mod tests {
         let mut output = String::new();
 
         indented(&mut output).write_str(input).unwrap();
+
+        assert_eq!(expected, output);
+    }
+
+    #[test]
+    fn dyn_write() {
+        let input = "verify\nthis";
+        let expected = "    verify\n    this";
+        let mut output = String::new();
+        let writer: &mut dyn core::fmt::Write = &mut output;
+
+        indented(writer).write_str(input).unwrap();
 
         assert_eq!(expected, output);
     }
