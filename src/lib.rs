@@ -132,6 +132,11 @@ impl<'a, D> Indented<'a, D> {
         self.with_format(Format::Numbered { ind })
     }
 
+    /// Sets the format to `Format::Uniform` with the provided static string
+    pub fn with_str(self, indentation: &'static str) -> Self {
+        self.with_format(Format::Uniform { indentation })
+    }
+
     /// Construct an indenter with a user defined format
     pub fn with_format(mut self, format: Format<'a>) -> Self {
         self.format = format;
@@ -215,6 +220,20 @@ mod tests {
         let mut output = String::new();
 
         indented(&mut output).write_str(input).unwrap();
+
+        assert_eq!(expected, output);
+    }
+
+    #[test]
+    fn with_str() {
+        let input = "verify\nthis";
+        let expected = "...verify\n...this";
+        let mut output = String::new();
+
+        indented(&mut output)
+            .with_str("...")
+            .write_str(input)
+            .unwrap();
 
         assert_eq!(expected, output);
     }
