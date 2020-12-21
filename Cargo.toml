@@ -35,11 +35,11 @@ search = "#!\\[doc\\(html_root_url.*"
 replace = "#![doc(html_root_url = \"https://docs.rs/{{crate_name}}/{{version}}\")]"
 exactly = 1
 
-[[package.metadata.release.pre-release-replacements]]
-file = "CHANGELOG.md"
-search = "\\.\\.\\.HEAD"
-replace="...{{tag_name}}"
-exactly = 1
+# [[package.metadata.release.pre-release-replacements]]
+# file = "CHANGELOG.md"
+# search = "\\.\\.\\.HEAD"
+# replace="...{{tag_name}}"
+# exactly = 1
 
 [[package.metadata.release.pre-release-replacements]]
 file = "CHANGELOG.md"
