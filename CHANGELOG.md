@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+
+## [0.3.1] - 2020-12-21
 ### Added
 - `with_str` helper method for indenting with static strings
 ### Changed
@@ -14,4 +16,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 <!-- next-url -->
+[Unreleased]: https://github.com/yaahc/indenter/compare/v0.3.1...HEAD
 [0.3.1]: https://github.com/yaahc/indenter/releases/tag/v0.3.1
