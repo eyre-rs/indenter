@@ -162,6 +162,12 @@ where
                 self.format.insert_indentation(ind, &mut self.inner)?;
             } else if ind > 0 {
                 self.inner.write_char('\n')?;
+
+                // Don't render the line unless its actually got text on it
+                if line.is_empty() {
+                    continue;
+                }
+
                 self.format.insert_indentation(ind, &mut self.inner)?;
             }
 
@@ -287,6 +293,17 @@ mod tests {
             input
         )
         .unwrap();
+
+        assert_eq!(expected, output);
+    }
+
+    #[test]
+    fn trailing_newlines() {
+        let input = "verify\nthis\n";
+        let expected = "  verify\n  this\n";
+        let output = &mut String::new();
+
+        write!(indented(output).with_str("  "), "{}", input).unwrap();
 
         assert_eq!(expected, output);
     }
