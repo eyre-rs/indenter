@@ -101,7 +101,7 @@ pub enum Format<'a> {
 #[allow(missing_debug_implementations)]
 pub struct Indented<'a, D: ?Sized> {
     inner: &'a mut D,
-    started: bool,
+    needs_indent: bool,
     format: Format<'a>,
 }
 
@@ -150,19 +150,21 @@ where
 {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for (ind, mut line) in s.split('\n').enumerate() {
-            if !self.started {
-                // trim first line to ensure it lines up with the number nicely
+            if ind > 0 {
+                self.inner.write_char('\n')?;
+                self.needs_indent = true;
+            }
+
+            if self.needs_indent {
+                // trim line to ensure it lines up with the number nicely
                 line = line.trim_start();
-                // Don't render the first line unless its actually got text on it
+                // Don't render the line unless its actually got text on it
                 if line.is_empty() {
                     continue;
                 }
 
-                self.started = true;
                 self.format.insert_indentation(ind, &mut self.inner)?;
-            } else if ind > 0 {
-                self.inner.write_char('\n')?;
-                self.format.insert_indentation(ind, &mut self.inner)?;
+                self.needs_indent = false;
             }
 
             self.inner.write_fmt(format_args!("{}", line))?;
@@ -176,7 +178,7 @@ where
 pub fn indented<D: ?Sized>(f: &mut D) -> Indented<'_, D> {
     Indented {
         inner: f,
-        started: false,
+        needs_indent: true,
         format: Format::Uniform {
             indentation: "    ",
         },
@@ -287,6 +289,28 @@ mod tests {
             input
         )
         .unwrap();
+
+        assert_eq!(expected, output);
+    }
+
+    #[test]
+    fn trailing_newlines() {
+        let input = "verify\nthis\n";
+        let expected = "  verify\n  this\n";
+        let output = &mut String::new();
+
+        write!(indented(output).with_str("  "), "{}", input).unwrap();
+
+        assert_eq!(expected, output);
+    }
+
+    #[test]
+    fn several_interpolations() {
+        let input = "verify\nthis\n";
+        let expected = "  verify\n  this\n  and verify\n  this\n";
+        let output = &mut String::new();
+
+        write!(indented(output).with_str("  "), "{} and {}", input, input).unwrap();
 
         assert_eq!(expected, output);
     }
