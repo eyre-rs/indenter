@@ -149,7 +149,7 @@ where
     T: fmt::Write + ?Sized,
 {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        for (ind, mut line) in s.split('\n').enumerate() {
+        for (ind, line) in s.split('\n').enumerate() {
             if ind > 0 {
                 self.inner.write_char('\n')?;
                 self.needs_indent = true;
@@ -157,7 +157,6 @@ where
 
             if self.needs_indent {
                 // trim line to ensure it lines up with the number nicely
-                line = line.trim_start();
                 // Don't render the line unless its actually got text on it
                 if line.is_empty() {
                     continue;
@@ -307,7 +306,7 @@ mod tests {
     #[test]
     fn several_interpolations() {
         let input = "verify\nthis\n";
-        let expected = "  verify\n  this\n  and verify\n  this\n";
+        let expected = "  verify\n  this\n   and verify\n  this\n";
         let output = &mut String::new();
 
         write!(indented(output).with_str("  "), "{} and {}", input, input).unwrap();
