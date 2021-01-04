@@ -156,7 +156,6 @@ where
             }
 
             if self.needs_indent {
-                // trim line to ensure it lines up with the number nicely
                 // Don't render the line unless its actually got text on it
                 if line.is_empty() {
                     continue;
