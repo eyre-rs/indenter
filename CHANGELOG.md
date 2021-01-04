@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Fixed
+- Changed indentation logic to better support trailing newlines and improve
+  overall formatting consistency
 
 ## [0.3.1] - 2020-12-21
 ### Added
