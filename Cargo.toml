@@ -15,6 +15,10 @@ A formatter wrapper that indents the text, designed for error display impls
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+std = []
+
 [dependencies]
 
 [package.metadata.docs.rs]
