@@ -200,9 +200,9 @@ pub struct CodeFormatter<'a, T> {
 #[cfg(feature = "std")]
 impl<'a, T: fmt::Write> fmt::Write for CodeFormatter<'a, T> {
     fn write_str(&mut self, input: &str) -> fmt::Result {
-        let input = match input.strip_prefix('\n') {
-            Some(s) => s,
-            None => return self.f.write_str(input),
+        let input = match input.chars().next() {
+            Some('\n') => &input[1..],
+            _ => return self.f.write_str(input),
         };
 
         let min = input
