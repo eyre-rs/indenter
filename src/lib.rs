@@ -536,7 +536,7 @@ mod tests_std {
     fn split_prefix() {
         let mut s = String::new();
         let mut f = CodeFormatter::new(&mut s, "    ");
-        write!(f, "\n").unwrap();
+        writeln!(f).unwrap();
         assert_eq!(s, "\n");
     }
 }
