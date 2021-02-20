@@ -477,4 +477,12 @@ mod tests_std {
         .unwrap();
         assert_eq!(s, "struct Foo;\n            fn foo() {\n            }");
     }
+
+    #[test]
+    fn split_prefix() {
+        let mut s = String::new();
+        let mut f = CodeFormatter::new(&mut s, "    ");
+        write!(f, "\n").unwrap();
+        assert_eq!(s, "\n");
+    }
 }
