@@ -11,11 +11,8 @@
 [docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg
 [docs-url]: https://docs.rs/indenter
 
-A wrapper for the `fmt::Write` objects that efficiently appends indentation
-after every newline.
-
-This type is intended primarily for writing error reporters that gracefully
-format error messages that span multiple lines.
+A few wrappers for the `fmt::Write` objects that efficiently appends and remove
+common indentation after every newline
 
 ## Setup
 
@@ -26,7 +23,12 @@ Add this to your `Cargo.toml`:
 indenter = "0.2"
 ```
 
-## Example
+## Examples
+
+## Indentation only
+
+This type is intended primarily for writing error reporters that gracefully
+format error messages that span multiple lines.
 
 ```rust
 use std::error::Error;
@@ -51,6 +53,46 @@ impl fmt::Debug for ErrorReporter<'_> {
         Ok(())
     }
 }
+```
+
+## "Dedenting" (removing common leading indendation)
+
+This type is intended primarily for formatting source code. For example, when
+generating code.
+
+```rust
+use std::error::Error;
+use core::fmt::{self, Write};
+use indenter::CodeFormatter;
+
+let mut output = String::new();
+let mut f = CodeFormatter::new(&mut output, "    ");
+
+write!(
+    f,
+    r#"
+    Hello
+        World
+    "#,
+);
+
+assert_eq!(output, "Hello\n    World\n");
+
+let mut output = String::new();
+let mut f = CodeFormatter::new(&mut output, "    ");
+
+// it can also indent...
+f.indent(2);
+
+write!(
+    f,
+    r#"
+    Hello
+        World
+    "#,
+);
+
+assert_eq!(output, "        Hello\n            World\n");
 ```
 
 #### License

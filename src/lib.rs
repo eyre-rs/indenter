@@ -1,4 +1,5 @@
-//! A wrapper for the `fmt::Write` objects that efficiently appends indentation after every newline
+//! A few wrappers for the `fmt::Write` objects that efficiently appends and remove
+//! common indentation after every newline
 //!
 //! # Setup
 //!
@@ -10,6 +11,8 @@
 //! ```
 //!
 //! # Example
+//!
+//! ## Indentation only
 //!
 //! ```rust
 //! use std::error::Error;
@@ -34,6 +37,49 @@
 //!         Ok(())
 //!     }
 //! }
+//! ```
+//!
+//! ## "Dedenting" (removing common leading indendation)
+//!
+//! ```rust
+//! # #[cfg(feature = "std")]
+//! # fn main() {
+//! use std::error::Error;
+//! use core::fmt::{self, Write};
+//! use indenter::CodeFormatter;
+//!
+//! let mut output = String::new();
+//! let mut f = CodeFormatter::new(&mut output, "    ");
+//!
+//! write!(
+//!     f,
+//!     r#"
+//!     Hello
+//!         World
+//!     "#,
+//! );
+//!
+//! assert_eq!(output, "Hello\n    World\n");
+//!
+//! let mut output = String::new();
+//! let mut f = CodeFormatter::new(&mut output, "    ");
+//!
+//! // it can also indent...
+//! f.indent(2);
+//!
+//! write!(
+//!     f,
+//!     r#"
+//!     Hello
+//!         World
+//!     "#,
+//! );
+//!
+//! assert_eq!(output, "        Hello\n            World\n");
+//! # }
+//! # #[cfg(not(feature = "std"))]
+//! # fn main() {
+//! # }
 //! ```
 #![cfg_attr(not(feature = "std"), no_std)]
 #![doc(html_root_url = "https://docs.rs/indenter/0.3.2")]
