@@ -10,7 +10,7 @@
 //! indenter = "0.2"
 //! ```
 //!
-//! # Example
+//! # Examples
 //!
 //! ## Indentation only
 //!
