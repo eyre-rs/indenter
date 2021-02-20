@@ -14,6 +14,9 @@
 //!
 //! ## Indentation only
 //!
+//! This type is intended primarily for writing error reporters that gracefully
+//! format error messages that span multiple lines.
+//!
 //! ```rust
 //! use std::error::Error;
 //! use core::fmt::{self, Write};
@@ -40,6 +43,11 @@
 //! ```
 //!
 //! ## "Dedenting" (removing common leading indendation)
+//!
+//! This type is intended primarily for formatting source code. For example, when
+//! generating code.
+//!
+//! This type requires the feature `std`.
 //!
 //! ```rust
 //! # #[cfg(feature = "std")]

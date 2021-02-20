@@ -60,6 +60,8 @@ impl fmt::Debug for ErrorReporter<'_> {
 This type is intended primarily for formatting source code. For example, when
 generating code.
 
+This type requires the feature `std`.
+
 ```rust
 use std::error::Error;
 use core::fmt::{self, Write};
