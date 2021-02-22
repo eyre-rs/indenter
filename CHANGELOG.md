@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- Implement new code dedenting / indenting formatter by cecton
 
 ## [0.3.2] - 2021-01-04
 ### Fixed
