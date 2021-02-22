@@ -90,7 +90,7 @@
 //! # }
 //! ```
 #![cfg_attr(not(feature = "std"), no_std)]
-#![doc(html_root_url = "https://docs.rs/indenter/0.3.2")]
+#![doc(html_root_url = "https://docs.rs/indenter/0.3.3")]
 #![warn(
     missing_debug_implementations,
     missing_docs,
