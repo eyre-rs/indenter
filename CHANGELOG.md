@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+
+## [0.3.3] - 2021-02-22
 ### Added
 - Implement new code dedenting / indenting formatter by cecton
 
@@ -23,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 <!-- next-url -->
-[Unreleased]: https://github.com/yaahc/indenter/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/yaahc/indenter/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/yaahc/indenter/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/yaahc/indenter/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/yaahc/indenter/releases/tag/v0.3.1
