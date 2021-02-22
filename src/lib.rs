@@ -1,4 +1,5 @@
-//! A wrapper for the `fmt::Write` objects that efficiently appends indentation after every newline
+//! A few wrappers for the `fmt::Write` objects that efficiently appends and remove
+//! common indentation after every newline
 //!
 //! # Setup
 //!
@@ -9,7 +10,12 @@
 //! indenter = "0.2"
 //! ```
 //!
-//! # Example
+//! # Examples
+//!
+//! ## Indentation only
+//!
+//! This type is intended primarily for writing error reporters that gracefully
+//! format error messages that span multiple lines.
 //!
 //! ```rust
 //! use std::error::Error;
@@ -35,7 +41,55 @@
 //!     }
 //! }
 //! ```
-#![no_std]
+//!
+//! ## "Dedenting" (removing common leading indendation)
+//!
+//! This type is intended primarily for formatting source code. For example, when
+//! generating code.
+//!
+//! This type requires the feature `std`.
+//!
+//! ```rust
+//! # #[cfg(feature = "std")]
+//! # fn main() {
+//! use std::error::Error;
+//! use core::fmt::{self, Write};
+//! use indenter::CodeFormatter;
+//!
+//! let mut output = String::new();
+//! let mut f = CodeFormatter::new(&mut output, "    ");
+//!
+//! write!(
+//!     f,
+//!     r#"
+//!     Hello
+//!         World
+//!     "#,
+//! );
+//!
+//! assert_eq!(output, "Hello\n    World\n");
+//!
+//! let mut output = String::new();
+//! let mut f = CodeFormatter::new(&mut output, "    ");
+//!
+//! // it can also indent...
+//! f.indent(2);
+//!
+//! write!(
+//!     f,
+//!     r#"
+//!     Hello
+//!         World
+//!     "#,
+//! );
+//!
+//! assert_eq!(output, "        Hello\n            World\n");
+//! # }
+//! # #[cfg(not(feature = "std"))]
+//! # fn main() {
+//! # }
+//! ```
+#![cfg_attr(not(feature = "std"), no_std)]
 #![doc(html_root_url = "https://docs.rs/indenter/0.3.2")]
 #![warn(
     missing_debug_implementations,
@@ -183,6 +237,88 @@ pub fn indented<D: ?Sized>(f: &mut D) -> Indented<'_, D> {
     }
 }
 
+/// Helper struct for efficiently dedent and indent multi line display implementations
+///
+/// # Explanation
+///
+/// This type allocates a string once to get the formatted result and then uses the internal
+/// formatter efficiently to: first dedent the output, then re-indent to the desired level.
+#[cfg(feature = "std")]
+#[allow(missing_debug_implementations)]
+pub struct CodeFormatter<'a, T> {
+    f: &'a mut T,
+    level: u32,
+    indentation: String,
+}
+
+#[cfg(feature = "std")]
+impl<'a, T: fmt::Write> fmt::Write for CodeFormatter<'a, T> {
+    fn write_str(&mut self, input: &str) -> fmt::Result {
+        let input = match input.chars().next() {
+            Some('\n') => &input[1..],
+            _ => return self.f.write_str(input),
+        };
+
+        let min = input
+            .split('\n')
+            .map(|line| line.chars().take_while(char::is_ascii_whitespace).count())
+            .filter(|count| *count > 0)
+            .min()
+            .unwrap_or_default();
+
+        let input = input.trim_end_matches(|c| char::is_ascii_whitespace(&c));
+
+        for line in input.split('\n') {
+            if line.len().saturating_sub(min) > 0 {
+                for _ in 0..self.level {
+                    self.f.write_str(&self.indentation)?;
+                }
+            }
+
+            if line.len() >= min {
+                self.f.write_str(&line[min..])?;
+            } else {
+                self.f.write_str(&line)?;
+            }
+            self.f.write_char('\n')?;
+        }
+
+        Ok(())
+    }
+
+    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> fmt::Result {
+        self.write_str(&args.to_string())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<'a, T: fmt::Write> CodeFormatter<'a, T> {
+    /// Wrap the formatter `f`, use `indentation` as base string indentation and return a new
+    /// formatter that implements `std::fmt::Write` that can be used with the macro `write!()`
+    pub fn new<S: Into<String>>(f: &'a mut T, indentation: S) -> Self {
+        Self {
+            f,
+            level: 0,
+            indentation: indentation.into(),
+        }
+    }
+
+    /// Set the indentation level to a specific value
+    pub fn set_level(&mut self, level: u32) {
+        self.level = level;
+    }
+
+    /// Increase the indentation level by `inc`
+    pub fn indent(&mut self, inc: u32) {
+        self.level = self.level.saturating_add(inc);
+    }
+
+    /// Decrease the indentation level by `inc`
+    pub fn dedent(&mut self, inc: u32) {
+        self.level = self.level.saturating_sub(inc);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     extern crate alloc;
@@ -311,5 +447,96 @@ mod tests {
         write!(indented(output).with_str("  "), "{} and {}", input, input).unwrap();
 
         assert_eq!(expected, output);
+    }
+}
+
+#[cfg(all(test, feature = "std"))]
+mod tests_std {
+    use super::*;
+    use core::fmt::Write as _;
+
+    #[test]
+    fn dedent() {
+        let mut s = String::new();
+        let mut f = CodeFormatter::new(&mut s, "    ");
+        write!(
+            f,
+            r#"
+            struct Foo;
+
+            impl Foo {{
+                fn foo() {{
+                    todo!()
+                }}
+            }}
+            "#,
+        )
+        .unwrap();
+        assert_eq!(
+            s,
+            "struct Foo;\n\nimpl Foo {\n    fn foo() {\n        todo!()\n    }\n}\n"
+        );
+
+        let mut s = String::new();
+        let mut f = CodeFormatter::new(&mut s, "    ");
+        write!(
+            f,
+            r#"
+            struct Foo;
+
+            impl Foo {{
+                fn foo() {{
+                    todo!()
+                }}
+            }}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            s,
+            "struct Foo;\n\nimpl Foo {\n    fn foo() {\n        todo!()\n    }\n}\n"
+        );
+    }
+
+    #[test]
+    fn indent() {
+        let mut s = String::new();
+        let mut f = CodeFormatter::new(&mut s, "    ");
+        f.indent(1);
+        write!(
+            f,
+            r#"
+            struct Foo;
+
+            impl Foo {{
+                fn foo() {{
+                    todo!()
+                }}
+            }}
+            "#,
+        )
+        .unwrap();
+        assert_eq!(s, "    struct Foo;\n\n    impl Foo {\n        fn foo() {\n            todo!()\n        }\n    }\n");
+    }
+
+    #[test]
+    fn inline() {
+        let mut s = String::new();
+        let mut f = CodeFormatter::new(&mut s, "    ");
+        write!(
+            f,
+            r#"struct Foo;
+            fn foo() {{
+            }}"#,
+        )
+        .unwrap();
+        assert_eq!(s, "struct Foo;\n            fn foo() {\n            }");
+    }
+
+    #[test]
+    fn split_prefix() {
+        let mut s = String::new();
+        let mut f = CodeFormatter::new(&mut s, "    ");
+        writeln!(f).unwrap();
+        assert_eq!(s, "\n");
     }
 }
