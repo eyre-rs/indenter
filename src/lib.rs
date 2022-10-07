@@ -112,6 +112,7 @@
     unused_parens,
     while_true
 )]
+
 use core::fmt;
 
 /// The set of supported formats for indentation
@@ -153,6 +154,7 @@ pub enum Format<'a> {
 #[allow(missing_debug_implementations)]
 pub struct Indented<'a, D: ?Sized> {
     inner: &'a mut D,
+    line_number: usize,
     needs_indent: bool,
     format: Format<'a>,
 }
@@ -201,23 +203,25 @@ where
     T: fmt::Write + ?Sized,
 {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        for (ind, line) in s.split('\n').enumerate() {
-            if ind > 0 {
+        for (i, line) in s.split('\n').enumerate() {
+            if i > 0 {
                 self.inner.write_char('\n')?;
                 self.needs_indent = true;
             }
 
             if self.needs_indent {
-                // Don't render the line unless its actually got text on it
+                // Don't render the line unless it actually has text on it
                 if line.is_empty() {
                     continue;
                 }
 
-                self.format.insert_indentation(ind, &mut self.inner)?;
+                self.format
+                    .insert_indentation(self.line_number, &mut self.inner)?;
+                self.line_number += 1;
                 self.needs_indent = false;
             }
 
-            self.inner.write_fmt(format_args!("{}", line))?;
+            self.inner.write_str(line)?;
         }
 
         Ok(())
@@ -228,6 +232,7 @@ where
 pub fn indented<D: ?Sized>(f: &mut D) -> Indented<'_, D> {
     Indented {
         inner: f,
+        line_number: 0,
         needs_indent: true,
         format: Format::Uniform {
             indentation: "    ",
@@ -426,6 +431,17 @@ mod tests {
     }
 
     #[test]
+    fn empty_lines() {
+        let input = "\n\n\nverify\n\nthis";
+        let expected = "\n\n\n  verify\n\n  this";
+        let output = &mut String::new();
+
+        write!(indented(output).with_str("  "), "{}", input).unwrap();
+
+        assert_eq!(expected, output);
+    }
+
+    #[test]
     fn trailing_newlines() {
         let input = "verify\nthis\n";
         let expected = "  verify\n  this\n";
@@ -443,6 +459,24 @@ mod tests {
         let output = &mut String::new();
 
         write!(indented(output).with_str("  "), "{} and {}", input, input).unwrap();
+
+        assert_eq!(expected, output);
+    }
+
+    #[test]
+    fn several_interpolations_keep_monotonic_line_numbers() {
+        let input = '\n';
+        let expected = "verify\n this\n  and this";
+        let output = &mut String::new();
+
+        write!(
+            indented(output).with_format(Format::Custom {
+                inserter: &mut move |line_no, f| { write!(f, "{:spaces$}", "", spaces = line_no) }
+            }),
+            "verify{}this{0}and this",
+            input
+        )
+        .unwrap();
 
         assert_eq!(expected, output);
     }
