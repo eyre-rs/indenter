@@ -17,7 +17,6 @@ A formatter wrapper that indents the text, designed for error display impls
 
 [features]
 default = []
-std = []
 
 [dependencies]
 

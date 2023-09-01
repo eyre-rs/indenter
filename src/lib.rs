@@ -47,11 +47,7 @@
 //! This type is intended primarily for formatting source code. For example, when
 //! generating code.
 //!
-//! This type requires the feature `std`.
-//!
 //! ```rust
-//! # #[cfg(feature = "std")]
-//! # fn main() {
 //! use std::error::Error;
 //! use core::fmt::{self, Write};
 //! use indenter::CodeFormatter;
@@ -84,12 +80,8 @@
 //! );
 //!
 //! assert_eq!(output, "        Hello\n            World\n");
-//! # }
-//! # #[cfg(not(feature = "std"))]
-//! # fn main() {
-//! # }
 //! ```
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![doc(html_root_url = "https://docs.rs/indenter/0.3.3")]
 #![warn(
     missing_debug_implementations,
@@ -238,21 +230,14 @@ pub fn indented<D: ?Sized>(f: &mut D) -> Indented<'_, D> {
 }
 
 /// Helper struct for efficiently dedent and indent multi line display implementations
-///
-/// # Explanation
-///
-/// This type allocates a string once to get the formatted result and then uses the internal
-/// formatter efficiently to: first dedent the output, then re-indent to the desired level.
-#[cfg(feature = "std")]
 #[allow(missing_debug_implementations)]
-pub struct CodeFormatter<'a, T> {
+pub struct CodeFormatter<'a, T, S> {
     f: &'a mut T,
     level: u32,
-    indentation: String,
+    indentation: S,
 }
 
-#[cfg(feature = "std")]
-impl<'a, T: fmt::Write> fmt::Write for CodeFormatter<'a, T> {
+impl<'a, T: fmt::Write, S: AsRef<str>> fmt::Write for CodeFormatter<'a, T, S> {
     fn write_str(&mut self, input: &str) -> fmt::Result {
         let input = match input.chars().next() {
             Some('\n') => &input[1..],
@@ -270,8 +255,9 @@ impl<'a, T: fmt::Write> fmt::Write for CodeFormatter<'a, T> {
 
         for line in input.split('\n') {
             if line.len().saturating_sub(min) > 0 {
+                let ind = self.indentation.as_ref();
                 for _ in 0..self.level {
-                    self.f.write_str(&self.indentation)?;
+                    self.f.write_str(ind)?;
                 }
             }
 
@@ -285,21 +271,16 @@ impl<'a, T: fmt::Write> fmt::Write for CodeFormatter<'a, T> {
 
         Ok(())
     }
-
-    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> fmt::Result {
-        self.write_str(&args.to_string())
-    }
 }
 
-#[cfg(feature = "std")]
-impl<'a, T: fmt::Write> CodeFormatter<'a, T> {
+impl<'a, T: fmt::Write, S: AsRef<str>> CodeFormatter<'a, T, S> {
     /// Wrap the formatter `f`, use `indentation` as base string indentation and return a new
     /// formatter that implements `std::fmt::Write` that can be used with the macro `write!()`
-    pub fn new<S: Into<String>>(f: &'a mut T, indentation: S) -> Self {
+    pub fn new(f: &'a mut T, indentation: S) -> Self {
         Self {
             f,
             level: 0,
-            indentation: indentation.into(),
+            indentation,
         }
     }
 
@@ -448,12 +429,6 @@ mod tests {
 
         assert_eq!(expected, output);
     }
-}
-
-#[cfg(all(test, feature = "std"))]
-mod tests_std {
-    use super::*;
-    use core::fmt::Write as _;
 
     #[test]
     fn dedent() {
