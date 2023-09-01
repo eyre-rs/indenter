@@ -20,7 +20,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-indenter = "0.2"
+indenter = "0.3"
 ```
 
 ## Examples
