@@ -98,7 +98,6 @@
     rust_2018_idioms,
     unreachable_pub,
     bad_style,
-    const_err,
     dead_code,
     improper_ctypes,
     non_shorthand_field_patterns,
@@ -106,8 +105,9 @@
     overflowing_literals,
     path_statements,
     patterns_in_fns_without_body,
-    private_in_public,
+    private_interfaces,
     unconditional_recursion,
+    unnameable_types,
     unused,
     unused_allocation,
     unused_comparisons,
@@ -167,10 +167,10 @@ pub type Inserter = dyn FnMut(usize, &mut dyn fmt::Write) -> fmt::Result;
 impl Format<'_> {
     fn insert_indentation(&mut self, line: usize, f: &mut dyn fmt::Write) -> fmt::Result {
         match self {
-            Format::Uniform { indentation } => write!(f, "{}", indentation),
+            Format::Uniform { indentation } => write!(f, "{indentation}"),
             Format::Numbered { ind } => {
                 if line == 0 {
-                    write!(f, "{: >4}: ", ind)
+                    write!(f, "{ind: >4}: ")
                 } else {
                     write!(f, "      ")
                 }
@@ -219,7 +219,7 @@ where
                 self.needs_indent = false;
             }
 
-            self.inner.write_fmt(format_args!("{}", line))?;
+            self.inner.write_fmt(format_args!("{line}"))?;
         }
 
         Ok(())
