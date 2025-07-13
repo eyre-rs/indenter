@@ -1,43 +1,30 @@
+name: Continuous Integration
+
+# Runs for each commit/PR, but not tag push
 on:
   push:
     branches:
-    - master
-  pull_request: {}
+      - "**"
+  pull_request:
 
-name: Continuous integration
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   check:
-    name: Check
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust:
-          - stable
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-
-  test-versions:
-    name: Test Suite
+    name: Check (stable)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.9.0
+      - name: Run Check
+        run: cargo check
 
-  test-features:
+  test-suite:
     name: Test Suite
     runs-on: ubuntu-latest
     strategy:
@@ -47,72 +34,44 @@ jobs:
           - beta
           - nightly
           - 1.39.0
+          - 1.88.0
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.9.0
         with:
           toolchain: ${{ matrix.rust }}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --no-default-features
+      - name: Run Tests with All Features
+        run: cargo test --all-features
+      - name: Run Tests with No Default Features
+        run: cargo test --no-default-features
 
-  test-os:
-    name: Test Suite
+  test-suite-os:
+    name: Test Suite (stable)
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.9.0
+      - name: Run Test
+        run: cargo test
 
   fmt:
-    name: Rustfmt
+    name: Rustfmt (stable)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust:
-          - stable
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-          override: true
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.9.0
       - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: Run Rustfmt
+        run: cargo fmt --all -- --check
 
   clippy:
-    name: Clippy
+    name: Clippy (stable)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust:
-          - stable
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-          override: true
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.9.0
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
