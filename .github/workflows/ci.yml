@@ -40,7 +40,6 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1.9.0
         with:
           toolchain: ${{ matrix.rust }}
-          override: true
       - name: Run Tests with All Features
         run: cargo test --all-features
       - name: Run Tests with No Default Features
