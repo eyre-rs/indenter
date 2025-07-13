@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   check:
-    name: Check
+    name: Check (stable)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
