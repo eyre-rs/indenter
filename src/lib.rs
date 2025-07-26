@@ -322,6 +322,24 @@ impl<'a, T: fmt::Write> CodeFormatter<'a, T> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<'a, T> CodeFormatter<'a, T> {
+    /// Get a reference to the inner `T`
+    pub fn inner_ref(&self) -> &T {
+        self.f
+    }
+
+    /// Get a mutable reference to the inner `T`
+    pub fn inner_mut(&mut self) -> &mut T {
+        self.f
+    }
+
+    /// Get back the original mutable reference to the inner `T`
+    pub fn into_inner(self) -> &'a mut T {
+        self.f
+    }
+}
+
 #[cfg(test)]
 mod tests {
     extern crate alloc;
